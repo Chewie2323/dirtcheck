@@ -143,3 +143,6 @@ A user belongs to a workspace through `membership`, with a role: `owner`, `admin
 ## What this build does not do
 
 Live Land Portal calls, PropStream, Regrid, county scrapers, Stripe or any billing and plan limits, transactional email (invites are links, and there is no password reset or email verification), audit logs, data export or workspace deletion, CRM sync, PDF export, and mobile apps. Those are the next steps before charging customers.
+
+
+Deployed from main via the Vercel Git integration.
