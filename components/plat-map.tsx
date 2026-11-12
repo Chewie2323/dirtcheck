@@ -23,9 +23,9 @@ export function PlatMap({
   });
 
   return (
-    <figure className="overflow-hidden rounded-lg border border-line bg-[#f7f4ee]">
+    <figure className="overflow-hidden rounded-lg border border-line bg-[#f4f6f8]">
       <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Schematic plat of the subject and comps" className="h-auto w-full">
-        <rect width={width} height={height} fill="#f7f4ee" />
+        <rect width={width} height={height} fill="#f4f6f8" />
         {[0.33, 0.66, 1].map((ring) => (
           <ellipse
             key={ring}
@@ -34,27 +34,27 @@ export function PlatMap({
             rx={36 + ring * 150}
             ry={(36 + ring * 150) * 0.86}
             fill="none"
-            stroke="#ddd6c8"
+            stroke="#d5dde5"
             strokeDasharray="3 4"
           />
         ))}
-        <text x={cx + 168} y={cy - 8} fill="#5f5a52" fontSize="11">
+        <text x={cx + 168} y={cy - 8} fill="#566472" fontSize="11">
           farther
         </text>
         {placed.map((comp) => (
           <g key={comp.id}>
-            <line x1={cx} y1={cy} x2={comp.x} y2={comp.y} stroke={comp.kept ? "#1e4636" : "#c4b8a8"} strokeWidth="1" />
-            <circle cx={comp.x} cy={comp.y} r={comp.kept ? 7 : 5} fill={comp.kept ? "#1e4636" : "#8d4b1f"} opacity={comp.kept ? 1 : 0.45} />
-            <text x={comp.x + 10} y={comp.y - 8} fill="#1c1915" fontSize="11">
+            <line x1={cx} y1={cy} x2={comp.x} y2={comp.y} stroke={comp.kept ? "#1f4e79" : "#b8c4d0"} strokeWidth="1" />
+            <circle cx={comp.x} cy={comp.y} r={comp.kept ? 7 : 5} fill={comp.kept ? "#1f4e79" : "#c0392b"} opacity={comp.kept ? 1 : 0.45} />
+            <text x={comp.x + 10} y={comp.y - 8} fill="#18222d" fontSize="11">
               {comp.kept ? ppa(comp.pricePerAcre) : "out"}
             </text>
-            <text x={comp.x + 10} y={comp.y + 6} fill="#5f5a52" fontSize="10">
+            <text x={comp.x + 10} y={comp.y + 6} fill="#566472" fontSize="10">
               {comp.distanceMiles.toFixed(1)} mi
             </text>
           </g>
         ))}
-        <circle cx={cx} cy={cy} r="8" fill="#e7c27a" stroke="#1c1915" strokeWidth="1.5" />
-        <text x={cx + 12} y={cy + 4} fill="#1c1915" fontSize="12" fontWeight="600">
+        <circle cx={cx} cy={cy} r="8" fill="#e2a33b" stroke="#18222d" strokeWidth="1.5" />
+        <text x={cx + 12} y={cy + 4} fill="#18222d" fontSize="12" fontWeight="600">
           Subject
         </text>
       </svg>
