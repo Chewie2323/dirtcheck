@@ -13,6 +13,8 @@ export interface Workspace {
   user: { id: string; name: string; email: string };
   organization: { id: string; name: string; slug: string };
   role: string;
+  /** Every workspace this user belongs to, for the switcher. */
+  workspaces: { id: string; name: string }[];
   settings: OrgSettings;
   settingsUpdatedAt: Date;
 }
@@ -61,6 +63,7 @@ export const loadWorkspace = cache(async (): Promise<Workspace | null> => {
     user: { id: session.user.id, name: session.user.name, email: session.user.email },
     organization: { id: chosen.orgId, name: chosen.orgName, slug: chosen.orgSlug },
     role: chosen.role,
+    workspaces: rows.map((row) => ({ id: row.orgId, name: row.orgName })),
     settings: parseSettings(chosen.settingsJson),
     settingsUpdatedAt: chosen.settingsUpdatedAt,
   };

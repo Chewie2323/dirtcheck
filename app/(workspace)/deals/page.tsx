@@ -1,8 +1,6 @@
 import Link from "next/link";
-import { desc, eq } from "drizzle-orm";
 import { Badge } from "@/components/ui";
-import { db } from "@/lib/db";
-import { deal } from "@/lib/db/schema";
+import { listDeals } from "@/lib/deals";
 import { acresLabel, dealTitle, formatDate, money } from "@/lib/format";
 import { SAMPLE_PARCELS } from "@/lib/samples";
 import { EXIT_LABELS, type ExitStrategy } from "@/lib/types";
@@ -26,25 +24,7 @@ const statusLabel = {
 
 export default async function DealsPage() {
   const workspace = await requireWorkspace();
-  // The list never shows the stored intake or report, so those JSON blobs
-  // (the bulk of each row) stay in the database.
-  const rows = await db
-    .select({
-      id: deal.id,
-      address: deal.address,
-      apn: deal.apn,
-      county: deal.county,
-      acres: deal.acres,
-      exitStrategy: deal.exitStrategy,
-      targetOffer: deal.targetOffer,
-      walkAwayOffer: deal.walkAwayOffer,
-      confidence: deal.confidence,
-      status: deal.status,
-      updatedAt: deal.updatedAt,
-    })
-    .from(deal)
-    .where(eq(deal.organizationId, workspace.organization.id))
-    .orderBy(desc(deal.updatedAt));
+  const rows = await listDeals(workspace.organization.id);
 
   return (
     <div className="space-y-6">

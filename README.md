@@ -47,7 +47,7 @@ The Land Portal choice on the form is a stub. It records the calls it would make
 ## Scripts
 
 ```bash
-npm test     # buy-box math and the comps screens
+npm test     # buy-box math, comps screens, and multi-tenant behavior (runs on an in-memory Postgres)
 npm run lint
 npm run build
 npm start    # production, same port 3847
@@ -124,10 +124,22 @@ On the Coshocton fixture the after-cost line is still $15,850. Minimum profit of
 
 Email and password use [Better Auth](https://better-auth.com) with its Drizzle adapter (`provider: "pg"`). Sessions are httpOnly cookies. There is no third-party login service.
 
-A user belongs to a workspace through `membership`. Deals and factor settings are stored on `organizationId` and every query checks that id. Sign-up creates the user, the workspace, and the default settings together. If that is interrupted, the next sign-in finishes creating the workspace.
+A user belongs to a workspace through `membership`, with a role: `owner`, `admin`, or `member`. Deals and factor settings are stored on `organizationId`, and `lib/deals.ts` is the only place deals are read or deleted, so every query is scoped to the workspace in one spot. A test proves one workspace cannot list, open, or delete another's deals.
+
+| Role | Can do |
+| --- | --- |
+| owner | Everything, including removing admins and members. |
+| admin | Change factors, invite members, remove members. |
+| member | Create and run deals, delete their own. |
+
+**Team.** Owners and admins invite people from the Team page. There is no email service yet, so the invite is a one-time link you send yourself. It works once, only for the invited email, and expires in 7 days. Only a hash of the link is stored. A person in more than one workspace gets a switcher in the header.
+
+**Abuse limits.** Sign-in is limited per IP and per email, and sign-up per IP, with counters in Postgres (`rateLimit` table) so they hold across serverless instances. The public `/api/auth` routes use the same table.
+
+**Health.** `GET /api/health` runs `select 1` and returns `{"ok":true}` or a 503. Point an uptime monitor at it.
 
 `lib/db/index.ts` is the only connection point. Tables are `user`, `session`, `account`, `verification`, `organization`, `membership`, `org_settings`, and `deal`. The buy-box engine and comps providers do not import the database.
 
 ## What this build does not do
 
-Live Land Portal calls, PropStream, Regrid, county scrapers, Stripe, CRM sync, PDF export, and mobile apps.
+Live Land Portal calls, PropStream, Regrid, county scrapers, Stripe or any billing and plan limits, transactional email (invites are links, and there is no password reset or email verification), audit logs, data export or workspace deletion, CRM sync, PDF export, and mobile apps. Those are the next steps before charging customers.

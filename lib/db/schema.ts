@@ -1,6 +1,8 @@
 import {
+  bigint,
   boolean,
   index,
+  integer,
   numeric,
   pgTable,
   text,
@@ -130,4 +132,37 @@ export const deal = pgTable(
     updatedAt: updatedAt(),
   },
   (table) => [index("deal_org_updated").on(table.organizationId, table.updatedAt)],
+);
+
+/**
+ * Counters for rate limiting. Better Auth reads and writes this table for its
+ * own routes (the name and columns are what it expects); lib/rate-limit.ts uses
+ * it for the sign-in and sign-up server actions under keys of its own.
+ */
+export const rateLimit = pgTable("rateLimit", {
+  id: text("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  count: integer("count").notNull(),
+  lastRequest: bigint("lastRequest", { mode: "number" }).notNull(),
+});
+
+/** A pending invitation to join a workspace. Only a hash of the link token is stored. */
+export const invitation = pgTable(
+  "invitation",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organizationId")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    role: text("role").notNull(),
+    tokenHash: text("tokenHash").notNull().unique(),
+    invitedBy: text("invitedBy")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    expiresAt: timestamp("expiresAt", { withTimezone: true, mode: "date" }).notNull(),
+    acceptedAt: timestamp("acceptedAt", { withTimezone: true, mode: "date" }),
+    createdAt: createdAt(),
+  },
+  (table) => [index("invitation_org").on(table.organizationId)],
 );

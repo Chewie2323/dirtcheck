@@ -2,21 +2,10 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { db, schema } from "./db";
+import { appBaseUrl } from "./url";
 
 const isProduction = process.env.NODE_ENV === "production";
 const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
-
-/**
- * Public origin of the app. Explicit BETTER_AUTH_URL wins. On Vercel we fall
- * back to the production domain, then the deployment URL, so a first deploy
- * works before anyone has copied the origin into an env var.
- */
-function resolveBaseURL(): string {
-  if (process.env.BETTER_AUTH_URL) return process.env.BETTER_AUTH_URL.replace(/\/$/, "");
-  const vercelHost = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
-  if (vercelHost) return `https://${vercelHost}`;
-  return "http://127.0.0.1:3847";
-}
 
 /**
  * The session signing secret. A known default would let anyone forge a session
@@ -32,7 +21,7 @@ function resolveSecret(): string {
   return secret || "dev-only-dirtcheck-secret-change-me-32b";
 }
 
-const baseURL = resolveBaseURL();
+const baseURL = appBaseUrl();
 
 // Local origins are only trusted outside production.
 const trustedOrigins = isProduction
@@ -50,6 +39,23 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
+  },
+  // Counters live in Postgres so limits hold across serverless instances. This
+  // covers the public /api/auth routes. The sign-in and sign-up server actions
+  // call the auth API directly, so they use lib/rate-limit.ts with the same table.
+  rateLimit: {
+    enabled: true,
+    storage: "database",
+    window: 60,
+    max: 60,
+    customRules: {
+      "/sign-in/email": { window: 60, max: 10 },
+      "/sign-up/email": { window: 3600, max: 10 },
+    },
+  },
+  advanced: {
+    // Vercel sets these two headers itself, replacing anything a client sends.
+    ipAddress: { ipAddressHeaders: ["x-real-ip", "x-forwarded-for"] },
   },
   plugins: [nextCookies()],
 });
