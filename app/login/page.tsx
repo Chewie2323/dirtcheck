@@ -8,9 +8,15 @@ export const metadata = { title: "Sign in" };
 
 export default async function LoginPage() {
   if (await loadWorkspace()) redirect("/deals");
+  // The shared demo login is a local-development convenience. In production it
+  // stays hidden unless SHOW_DEMO_LOGIN=1 is set on purpose.
+  const showDemo = process.env.NODE_ENV !== "production" || process.env.SHOW_DEMO_LOGIN === "1";
   return (
     <AuthFrame title="Sign in" lede="Open the workspace that holds your land files.">
-      <LoginForm demoEmail={DEMO_EMAIL} demoPassword={DEMO_PASSWORD} />
+      <LoginForm
+        demoEmail={showDemo ? DEMO_EMAIL : undefined}
+        demoPassword={showDemo ? DEMO_PASSWORD : undefined}
+      />
     </AuthFrame>
   );
 }

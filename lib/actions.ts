@@ -8,23 +8,13 @@ import { auth } from "./auth";
 import { db } from "./db";
 import { deal, membership, orgSettings, organization, user } from "./db/schema";
 import { intakeFromFormData } from "./intake";
+import { provisionWorkspace } from "./provision";
 import { EXAMPLE_SETTINGS } from "./settings";
 import { settingsFromFormData } from "./settings-form";
-import { requireWorkspace } from "./workspace";
+import { ORG_COOKIE, requireWorkspace } from "./workspace";
 
 export interface ActionState {
   error?: string;
-}
-
-const ORG_COOKIE = "dirtcheck_org";
-
-function slugify(name: string): string {
-  const base = name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 40) || "workspace";
-  return `${base}-${crypto.randomUUID().slice(0, 6)}`;
 }
 
 async function rememberOrg(organizationId: string) {
@@ -70,26 +60,14 @@ export async function signupAction(_prev: ActionState, formData: FormData): Prom
   const [created] = await db.select().from(user).where(eq(user.email, email)).limit(1);
   if (!created) return { error: "The account was created, but the workspace could not be attached. Try signing in." };
 
-  const orgId = crypto.randomUUID();
-  const now = new Date();
-  await db.insert(organization).values({
-    id: orgId,
-    name: workspaceName,
-    slug: slugify(workspaceName),
-    createdAt: now,
-  });
-  await db.insert(membership).values({
-    id: crypto.randomUUID(),
-    organizationId: orgId,
-    userId: created.id,
-    role: "owner",
-    createdAt: now,
-  });
-  await db.insert(orgSettings).values({
-    organizationId: orgId,
-    settingsJson: JSON.stringify(EXAMPLE_SETTINGS),
-    updatedAt: now,
-  });
+  let orgId: string;
+  try {
+    orgId = await provisionWorkspace(created.id, workspaceName);
+  } catch (error) {
+    console.error(error);
+    // The account exists, so signing in later creates the workspace.
+    return { error: "Your account was created, but the workspace could not be set up. Sign in to finish." };
+  }
   await rememberOrg(orgId);
   redirect("/deals");
 }
@@ -108,10 +86,25 @@ export async function loginAction(_prev: ActionState, formData: FormData): Promi
     return { error: safeAuthMessage(error, "Email or password is wrong.") };
   }
 
-  const [found] = await db.select().from(user).where(eq(user.email, email)).limit(1);
+  const [found] = await db
+    .select({ id: user.id, name: user.name, organizationId: membership.organizationId })
+    .from(user)
+    .leftJoin(membership, eq(membership.userId, user.id))
+    .where(eq(user.email, email))
+    .limit(1);
   if (!found) return { error: "Email or password is wrong." };
-  const [member] = await db.select().from(membership).where(eq(membership.userId, found.id)).limit(1);
-  if (member) await rememberOrg(member.organizationId);
+
+  let organizationId = found.organizationId;
+  if (!organizationId) {
+    // A signup that was interrupted after the account was created. Finish it.
+    try {
+      organizationId = await provisionWorkspace(found.id, `${found.name}'s workspace`);
+    } catch (error) {
+      console.error(error);
+      return { error: "Signed in, but the workspace could not be set up. Try again." };
+    }
+  }
+  await rememberOrg(organizationId);
   redirect("/deals");
 }
 

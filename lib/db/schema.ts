@@ -21,36 +21,44 @@ export const user = pgTable("user", {
   updatedAt: updatedAt(),
 });
 
-export const session = pgTable("session", {
-  id: text("id").primaryKey(),
-  expiresAt: timestamp("expiresAt", { withTimezone: true, mode: "date" }).notNull(),
-  token: text("token").notNull().unique(),
-  createdAt: createdAt(),
-  updatedAt: updatedAt(),
-  ipAddress: text("ipAddress"),
-  userAgent: text("userAgent"),
-  userId: text("userId")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-});
+export const session = pgTable(
+  "session",
+  {
+    id: text("id").primaryKey(),
+    expiresAt: timestamp("expiresAt", { withTimezone: true, mode: "date" }).notNull(),
+    token: text("token").notNull().unique(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+    ipAddress: text("ipAddress"),
+    userAgent: text("userAgent"),
+    userId: text("userId")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+  },
+  (table) => [index("session_user").on(table.userId)],
+);
 
-export const account = pgTable("account", {
-  id: text("id").primaryKey(),
-  accountId: text("accountId").notNull(),
-  providerId: text("providerId").notNull(),
-  userId: text("userId")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  accessToken: text("accessToken"),
-  refreshToken: text("refreshToken"),
-  idToken: text("idToken"),
-  accessTokenExpiresAt: timestamp("accessTokenExpiresAt", { withTimezone: true, mode: "date" }),
-  refreshTokenExpiresAt: timestamp("refreshTokenExpiresAt", { withTimezone: true, mode: "date" }),
-  scope: text("scope"),
-  password: text("password"),
-  createdAt: createdAt(),
-  updatedAt: updatedAt(),
-});
+export const account = pgTable(
+  "account",
+  {
+    id: text("id").primaryKey(),
+    accountId: text("accountId").notNull(),
+    providerId: text("providerId").notNull(),
+    userId: text("userId")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    accessToken: text("accessToken"),
+    refreshToken: text("refreshToken"),
+    idToken: text("idToken"),
+    accessTokenExpiresAt: timestamp("accessTokenExpiresAt", { withTimezone: true, mode: "date" }),
+    refreshTokenExpiresAt: timestamp("refreshTokenExpiresAt", { withTimezone: true, mode: "date" }),
+    scope: text("scope"),
+    password: text("password"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [index("account_user").on(table.userId)],
+);
 
 export const verification = pgTable("verification", {
   id: text("id").primaryKey(),
@@ -81,7 +89,11 @@ export const membership = pgTable(
     role: text("role").notNull(),
     createdAt: createdAt(),
   },
-  (table) => [uniqueIndex("membership_org_user").on(table.organizationId, table.userId)],
+  (table) => [
+    uniqueIndex("membership_org_user").on(table.organizationId, table.userId),
+    // Every request looks a user's workspaces up by userId alone.
+    index("membership_user").on(table.userId),
+  ],
 );
 
 export const orgSettings = pgTable("org_settings", {

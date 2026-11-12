@@ -1,0 +1,44 @@
+import { randomUUID } from "node:crypto";
+import { eq } from "drizzle-orm";
+import { db } from "./db";
+import { membership, orgSettings, organization } from "./db/schema";
+import { EXAMPLE_SETTINGS } from "./settings";
+
+export function slugify(name: string): string {
+  const base =
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 40) || "workspace";
+  return `${base}-${randomUUID().slice(0, 6)}`;
+}
+
+/**
+ * Create a workspace (organization, owner membership, default settings) for a
+ * user. If any step fails, the organization row is removed. Its foreign keys
+ * cascade, so a partial workspace never lingers.
+ */
+export async function provisionWorkspace(userId: string, name: string): Promise<string> {
+  const orgId = randomUUID();
+  const now = new Date();
+  try {
+    await db.insert(organization).values({ id: orgId, name, slug: slugify(name), createdAt: now });
+    await db.insert(membership).values({
+      id: randomUUID(),
+      organizationId: orgId,
+      userId,
+      role: "owner",
+      createdAt: now,
+    });
+    await db.insert(orgSettings).values({
+      organizationId: orgId,
+      settingsJson: JSON.stringify(EXAMPLE_SETTINGS),
+      updatedAt: now,
+    });
+  } catch (error) {
+    await db.delete(organization).where(eq(organization.id, orgId)).catch(() => undefined);
+    throw error;
+  }
+  return orgId;
+}

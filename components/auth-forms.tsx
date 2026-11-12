@@ -5,7 +5,7 @@ import { useActionState } from "react";
 import { Button, Field, Input } from "@/components/ui";
 import { loginAction, signupAction, type ActionState } from "@/lib/actions";
 
-export function LoginForm({ demoEmail, demoPassword }: { demoEmail: string; demoPassword: string }) {
+export function LoginForm({ demoEmail, demoPassword }: { demoEmail?: string; demoPassword?: string }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(loginAction, {});
   return (
     <form action={action} className="space-y-4">
@@ -19,9 +19,11 @@ export function LoginForm({ demoEmail, demoPassword }: { demoEmail: string; demo
       <Button type="submit" className="w-full" disabled={pending}>
         {pending ? "Signing in…" : "Sign in"}
       </Button>
-      <p className="rounded-md bg-paper-2 px-3 py-2 text-xs leading-5 text-muted">
-        Local demo workspace: {demoEmail} / {demoPassword}. It already has three Ohio sample deals. Change this password before anyone else can reach the machine.
-      </p>
+      {demoEmail && demoPassword ? (
+        <p className="rounded-md bg-paper-2 px-3 py-2 text-xs leading-5 text-muted">
+          Local demo workspace: {demoEmail} / {demoPassword}. It already has three Ohio sample deals. Change this password before anyone else can reach the machine.
+        </p>
+      ) : null}
       <p className="text-sm text-muted">
         New company? <Link className="font-medium text-pine" href="/signup">Create a workspace</Link>
       </p>

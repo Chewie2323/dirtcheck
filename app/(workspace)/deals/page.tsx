@@ -26,8 +26,22 @@ const statusLabel = {
 
 export default async function DealsPage() {
   const workspace = await requireWorkspace();
+  // The list never shows the stored intake or report, so those JSON blobs
+  // (the bulk of each row) stay in the database.
   const rows = await db
-    .select()
+    .select({
+      id: deal.id,
+      address: deal.address,
+      apn: deal.apn,
+      county: deal.county,
+      acres: deal.acres,
+      exitStrategy: deal.exitStrategy,
+      targetOffer: deal.targetOffer,
+      walkAwayOffer: deal.walkAwayOffer,
+      confidence: deal.confidence,
+      status: deal.status,
+      updatedAt: deal.updatedAt,
+    })
     .from(deal)
     .where(eq(deal.organizationId, workspace.organization.id))
     .orderBy(desc(deal.updatedAt));
