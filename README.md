@@ -42,7 +42,7 @@ On **New deal**, use one of the fixture parcels:
 
 Any other address still runs, using synthetic demo comps that are labeled as such. They are not a market opinion.
 
-The Land Portal choice on the form is a stub. It records the calls it would make and does not send HTTP or invent a report.
+The Land Portal choice on the form calls Land Portal's REST API (APN + state lookup, then an async comp report). The response mapper is tolerant but unverified against live data until a real report has been run; unreadable responses produce an error, never made-up comps.
 
 ## Scripts
 
@@ -64,7 +64,7 @@ Copy `.env.example` to `.env` and set `DATABASE_URL` before `npm run dev`. Sessi
 | `DATABASE_URL` | Postgres connection string. Required. Neon URLs use `@neondatabase/serverless`. Other URLs, including Supabase and local Postgres, use `pg`. Hosted URLs use TLS. |
 | `DATABASE_SSL_CA` | Optional. A PEM certificate to verify the database TLS chain. Without it TLS is on but the chain is not verified. |
 | `SHOW_DEMO_LOGIN` | Optional. Set to `1` to show the demo login on the sign-in page in production. |
-| `LAND_PORTAL_API_KEY` | Optional. The stub checks whether it is set and still does not call the API. |
+| `LAND_PORTAL_API_KEY` | Land Portal API key. Required for the Land Portal comps provider (set in Vercel env vars; never commit it). |
 | `LAND_PORTAL_BASE_URL` | Optional. Defaults to `https://landportal.com/wp-json/lp-rest-api/v1`. |
 
 ## Deploy on Vercel
@@ -78,7 +78,7 @@ Dirt Check runs on any Postgres. Supabase and Neon are both supported; Neon host
    - `DATABASE_URL`: the pooled connection string.
    - `BETTER_AUTH_SECRET`: a random string of at least 32 characters. Production refuses to start without it (`openssl rand -base64 32`).
    - `BETTER_AUTH_URL`: the public `https://` origin. Optional on Vercel, which falls back to its own deployment domain.
-   - `LAND_PORTAL_API_KEY`: leave empty until a live Land Portal client is wired.
+   - `LAND_PORTAL_API_KEY`: your Land Portal API key. Deals using the Land Portal provider need the parcel APN and state; reports build asynchronously, so a first run can show "pending" — run it again after a minute.
 3. Build command: `npm run build`. The database client does not connect while the module is imported, so the build does not need a live query.
 4. Apply the schema once, from your machine, with the direct (port 5432) string:
 

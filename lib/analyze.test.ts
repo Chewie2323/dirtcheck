@@ -113,22 +113,85 @@ describe("buy box", () => {
     assert.equal(report.offer.walkAway, null);
   });
 
-  it("does not call Land Portal", async () => {
-    const previous = process.env.LAND_PORTAL_API_KEY;
-    delete process.env.LAND_PORTAL_API_KEY;
-    const stub = await landPortalCompsProvider.fetch({
-      address: "1 Main St",
-      apn: "99-1",
-      county: "Coshocton",
-      state: "OH",
-      acres: 5,
-      asOf,
+  describe("Land Portal client", () => {
+    const query = { address: "1 Main St", apn: "99-1", county: "Coshocton", state: "OH", acres: 5, asOf };
+    const realFetch = globalThis.fetch;
+    const realKey = process.env.LAND_PORTAL_API_KEY;
+    const json = (body: unknown, status = 200) =>
+      new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+    const restore = () => {
+      globalThis.fetch = realFetch;
+      if (realKey === undefined) delete process.env.LAND_PORTAL_API_KEY;
+      else process.env.LAND_PORTAL_API_KEY = realKey;
+    };
+
+    it("reports not configured without a key and sends no request", async () => {
+      delete process.env.LAND_PORTAL_API_KEY;
+      let calls = 0;
+      globalThis.fetch = (async () => { calls++; return json({}); }) as typeof fetch;
+      try {
+        const out = await landPortalCompsProvider.fetch(query);
+        assert.equal(out.ok, false);
+        if (!out.ok) assert.equal(out.status, "not_configured");
+        assert.equal(calls, 0);
+      } finally { restore(); }
     });
-    assert.equal(stub.ok, false);
-    assert.equal(stub.stub, true);
-    assert.equal(stub.configured, false);
-    assert.ok(stub.plannedCalls.some((call) => call.includes("POST") && call.includes("/reports")));
-    assert.ok(stub.plannedCalls.some((call) => call.includes("/search?type=parcelnumb")));
-    if (previous) process.env.LAND_PORTAL_API_KEY = previous;
+
+    it("requires an APN", async () => {
+      process.env.LAND_PORTAL_API_KEY = "test-key";
+      try {
+        const out = await landPortalCompsProvider.fetch({ ...query, apn: "" });
+        assert.equal(out.ok, false);
+        if (!out.ok) assert.match(out.message, /APN/);
+      } finally { restore(); }
+    });
+
+    it("resolves, reads the report, and maps comps with Bearer auth", async () => {
+      process.env.LAND_PORTAL_API_KEY = "test-key";
+      const seen: { url: string; auth: string | null; method: string }[] = [];
+      globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+        const u = String(url);
+        seen.push({ url: u, auth: new Headers(init?.headers).get("authorization"), method: init?.method ?? "GET" });
+        if (u.includes("/search")) return json({ results: [{ propertyid: "P1", fips: "39031", county: "Coshocton", acres: 5.2 }] });
+        return json({ comps: [
+          { sale_price: "$25,000", acres: 5, sale_date: "2026-03-01", distance: 3.2, address: "A Rd" },
+          { sale_price: 0, acres: 5, sale_date: "2026-03-01" },
+        ] });
+      }) as typeof fetch;
+      try {
+        const out = await landPortalCompsProvider.fetch(query);
+        assert.equal(out.ok, true);
+        if (out.ok) {
+          assert.equal(out.comps.length, 1);
+          assert.equal(out.comps[0].salePrice, 25000);
+          assert.equal(out.comps[0].distanceMiles, 3.2);
+          assert.equal(out.parcel.fips, "39031");
+        }
+        assert.ok(seen.every((r) => r.auth === "Bearer test-key"));
+        assert.ok(seen[0].url.includes("type=parcelnumb"));
+        assert.ok(!seen.some((r) => r.method === "POST"));
+      } finally { restore(); }
+    });
+
+    it("never fabricates comps from an unreadable report", async () => {
+      process.env.LAND_PORTAL_API_KEY = "test-key";
+      globalThis.fetch = (async (url: string | URL | Request) =>
+        String(url).includes("/search") ? json([{ propertyid: "P1", fips: "39031" }]) : json({ weird: { shape: true } })) as typeof fetch;
+      try {
+        const out = await landPortalCompsProvider.fetch(query);
+        assert.equal(out.ok, false);
+        if (!out.ok) assert.match(out.message, /could not read/);
+      } finally { restore(); }
+    });
+
+    it("surfaces a rejected key", async () => {
+      process.env.LAND_PORTAL_API_KEY = "bad";
+      globalThis.fetch = (async () => json({}, 401)) as typeof fetch;
+      try {
+        const out = await landPortalCompsProvider.fetch(query);
+        assert.equal(out.ok, false);
+        if (!out.ok) assert.match(out.message, /rejected the API key/);
+      } finally { restore(); }
+    });
   });
 });
