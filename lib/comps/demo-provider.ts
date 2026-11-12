@@ -1,6 +1,7 @@
 import { SAMPLE_PARCELS, type SampleParcel } from "../samples";
 import { monthsAgo, normKey } from "../stats";
-import type { CompQuery, DemoFetch, LandComp, RoadAccess } from "../types";
+import { demoMode } from "../features";
+import type { CompQuery, DemoFetch, LandComp, LandPortalStub, RoadAccess } from "../types";
 
 interface CompDraft {
   address: string;
@@ -213,7 +214,7 @@ function syntheticComps(query: CompQuery): LandComp[] {
   const rand = unit(hashString(`${query.address}|${query.apn}|${query.acres}`));
   const base = 7000 + Math.round(rand() * 8000);
   const county = query.county.trim() || "Unverified demo county";
-  const state = (query.state || "OH").toUpperCase();
+  const state = (query.state || "").toUpperCase();
   const access: RoadAccess = "dirt";
   const drafts: CompDraft[] = [0, 1, 2, 3].map((index) => {
     const acres = Math.round(query.acres * (0.75 + rand() * 0.4) * 100) / 100;
@@ -249,11 +250,23 @@ export class DemoCompsProvider {
   readonly id = "demo" as const;
   readonly label = "Demo comps";
 
-  async fetch(query: CompQuery): Promise<DemoFetch> {
+  async fetch(query: CompQuery): Promise<DemoFetch | LandPortalStub> {
     const sample = matchSample(query);
+    if (!sample && !demoMode()) {
+      return {
+        ok: false,
+        provider: "demo",
+        stub: false,
+        status: "error",
+        configured: true,
+        message:
+          "Demo comps are turned off in this workspace and no real comps provider was used. Switch this deal to Land Portal.",
+        plannedCalls: [],
+      };
+    }
     if (!sample) {
       const county = query.county.trim() || "Unverified demo county";
-      const state = (query.state || "OH").toUpperCase();
+      const state = (query.state || "").toUpperCase();
       return {
         ok: true,
         provider: "demo",
@@ -265,7 +278,7 @@ export class DemoCompsProvider {
           state,
           acres: query.acres,
           notes: [
-            "This address is not one of the Ohio fixtures. The comps below are synthetic demo sales so the worksheet still runs. They are not a market opinion.",
+            "This address is not one of the bundled sample parcels. The comps below are synthetic demo sales so the worksheet still runs. They are not a market opinion.",
           ],
         },
         comps: syntheticComps(query),

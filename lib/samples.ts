@@ -112,18 +112,11 @@ export function sampleById(id: string | undefined): SampleParcel | undefined {
   return SAMPLE_PARCELS.find((sample) => sample.id === id);
 }
 
-export const PILOT_MARKET = {
-  county: "Coshocton",
-  state: "OH",
-  fips: "39031",
-  label: "Coshocton County, Ohio (FIPS 39031)",
-};
-
 export const blankIntake: DealIntake = {
   address: "",
   apn: "",
-  county: PILOT_MARKET.county,
-  state: PILOT_MARKET.state,
+  county: "",
+  state: "",
   acres: 5,
   exitStrategy: "wholesale",
   roadAccess: "dirt",
@@ -143,5 +136,5 @@ export const blankIntake: DealIntake = {
   ownerType: "person",
   survey: "unknown",
   clearTitle: "unknown",
-  provider: "demo",
+  provider: "land_portal",
 };

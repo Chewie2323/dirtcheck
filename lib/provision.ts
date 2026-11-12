@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "./db";
 import type { Db } from "./db/types";
 import { membership, orgSettings, organization } from "./db/schema";
-import { EXAMPLE_SETTINGS } from "./settings";
+import { DEFAULT_SETTINGS } from "./settings";
 
 export function slugify(name: string): string {
   const base =
@@ -34,7 +34,7 @@ export async function provisionWorkspace(userId: string, name: string, database:
     });
     await database.insert(orgSettings).values({
       organizationId: orgId,
-      settingsJson: JSON.stringify(EXAMPLE_SETTINGS),
+      settingsJson: JSON.stringify(DEFAULT_SETTINGS),
       updatedAt: now,
     });
   } catch (error) {

@@ -2,10 +2,12 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { analyzeIntake } from "./analyze";
 import { buildBuyBox } from "./buybox/engine";
+import { demoCompsProvider } from "./comps/demo-provider";
 import { landPortalCompsProvider } from "./comps/land-portal";
+import { intakeFromFormData } from "./intake";
 import { verifyComps } from "./comps/verify";
 import { SAMPLE_PARCELS } from "./samples";
-import { EXAMPLE_SETTINGS } from "./settings";
+import { DEFAULT_SETTINGS } from "./settings";
 import type { LandComp } from "./types";
 
 const asOf = new Date("2026-11-05T12:00:00Z");
@@ -13,7 +15,7 @@ const asOf = new Date("2026-11-05T12:00:00Z");
 describe("buy box", () => {
   it("reproduces the draft example on the Coshocton fixture", async () => {
     const sample = SAMPLE_PARCELS[0];
-    const result = await analyzeIntake(sample.intake, EXAMPLE_SETTINGS, asOf);
+    const result = await analyzeIntake(sample.intake, DEFAULT_SETTINGS, asOf);
     assert.equal(result.kind, "report");
     if (result.kind !== "report") return;
     assert.equal(result.synthetic, false);
@@ -43,8 +45,8 @@ describe("buy box", () => {
   });
 
   it("rates the Athens fixture high and the Meigs fixture low", async () => {
-    const athens = await analyzeIntake(SAMPLE_PARCELS[1].intake, EXAMPLE_SETTINGS, asOf);
-    const meigs = await analyzeIntake(SAMPLE_PARCELS[2].intake, EXAMPLE_SETTINGS, asOf);
+    const athens = await analyzeIntake(SAMPLE_PARCELS[1].intake, DEFAULT_SETTINGS, asOf);
+    const meigs = await analyzeIntake(SAMPLE_PARCELS[2].intake, DEFAULT_SETTINGS, asOf);
     assert.equal(athens.kind, "report");
     assert.equal(meigs.kind, "report");
     if (athens.kind !== "report" || meigs.kind !== "report") return;
@@ -58,7 +60,7 @@ describe("buy box", () => {
 
   it("matches an APN without an address", async () => {
     const intake = { ...SAMPLE_PARCELS[0].intake, address: "" };
-    const result = await analyzeIntake(intake, EXAMPLE_SETTINGS, asOf);
+    const result = await analyzeIntake(intake, DEFAULT_SETTINGS, asOf);
     assert.equal(result.kind, "report");
     if (result.kind !== "report") return;
     assert.equal(result.math.marketValue, 38700);
@@ -86,7 +88,7 @@ describe("buy box", () => {
     const verified = verifyComps({
       subject: { county: "Coshocton", state: "OH", acres: 5, roadAccess: "dirt" },
       comps: [comp],
-      settings: EXAMPLE_SETTINGS,
+      settings: DEFAULT_SETTINGS,
       asOf,
     });
     const report = buildBuyBox({
@@ -103,7 +105,7 @@ describe("buy box", () => {
       synthetic: false,
       providerNotes: [],
       verified,
-      settings: EXAMPLE_SETTINGS,
+      settings: DEFAULT_SETTINGS,
       asOf,
     });
     assert.equal(verified.insufficient, true);
@@ -193,5 +195,39 @@ describe("buy box", () => {
         if (!out.ok) assert.match(out.message, /rejected the API key/);
       } finally { restore(); }
     });
+  });
+});
+
+describe("production behavior", () => {
+  const query = { address: "1 Main St", apn: "99-1", county: "Travis", state: "TX", acres: 5, asOf };
+
+  it("refuses to invent filler comps in production", async () => {
+    const env = process.env as Record<string, string | undefined>;
+    const prev = { node: env.NODE_ENV, allow: env.ALLOW_DEMO_DATA };
+    env.NODE_ENV = "production";
+    delete env.ALLOW_DEMO_DATA;
+    try {
+      const out = await demoCompsProvider.fetch(query);
+      assert.equal(out.ok, false);
+    } finally {
+      if (prev.node === undefined) delete env.NODE_ENV; else env.NODE_ENV = prev.node;
+      if (prev.allow !== undefined) env.ALLOW_DEMO_DATA = prev.allow;
+    }
+  });
+
+  it("makes the Land Portal provider require an APN and state", () => {
+    const form = (fields: Record<string, string>) => {
+      const data = new FormData();
+      const base: Record<string, string> = {
+        address: "12 Rural Rd", apn: "", state: "", acres: "10", exitStrategy: "wholesale",
+        roadAccess: "paved", flood: "none", hoa: "unknown", ownerType: "person",
+        survey: "unknown", clearTitle: "unknown", provider: "land_portal",
+      };
+      for (const [k, v] of Object.entries({ ...base, ...fields })) data.set(k, v);
+      return intakeFromFormData(data);
+    };
+    assert.equal(form({}).ok, false);
+    assert.equal(form({ apn: "123-45" }).ok, false);
+    assert.equal(form({ apn: "123-45", state: "TX" }).ok, true);
   });
 });

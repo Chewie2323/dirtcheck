@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 import { ComplianceNote } from "@/components/compliance-note";
 import { Button, Field, Input, Select, Textarea } from "@/components/ui";
 import { createDealAction, type ActionState } from "@/lib/actions";
-import { PILOT_MARKET, SAMPLE_PARCELS, blankIntake } from "@/lib/samples";
+import { SAMPLE_PARCELS, blankIntake } from "@/lib/samples";
 import {
   ACCESS_LABELS,
   EXIT_LABELS,
@@ -17,7 +17,7 @@ import {
   type DealIntake,
 } from "@/lib/types";
 
-export function DealForm({ initial }: { initial: DealIntake }) {
+export function DealForm({ initial, demo = false }: { initial: DealIntake; demo?: boolean }) {
   const [draft, setDraft] = useState<DealIntake>(initial);
   const [state, action, pending] = useActionState<ActionState, FormData>(createDealAction, {});
 
@@ -28,7 +28,7 @@ export function DealForm({ initial }: { initial: DealIntake }) {
   return (
     <form action={action} className="space-y-6">
       <div className="flex flex-wrap gap-2">
-        {SAMPLE_PARCELS.map((sample) => (
+        {demo ? SAMPLE_PARCELS.map((sample) => (
           <button
             key={sample.id}
             type="button"
@@ -38,8 +38,8 @@ export function DealForm({ initial }: { initial: DealIntake }) {
             <span className="font-medium">{sample.title}</span>
             <span className="mt-0.5 block text-muted">{sample.blurb}</span>
           </button>
-        ))}
-        <button type="button" onClick={() => setDraft(blankIntake)} className="rounded-full border border-line px-3 py-1.5 text-xs text-muted">
+        )) : null}
+        <button type="button" onClick={() => setDraft({ ...blankIntake, provider: initial.provider })} className="rounded-full border border-line px-3 py-1.5 text-xs text-muted">
           Clear
         </button>
       </div>
@@ -52,16 +52,16 @@ export function DealForm({ initial }: { initial: DealIntake }) {
           <h2 className="font-semibold">Parcel</h2>
           <p className="text-sm text-muted">Address or APN. Acreage is what the offer multiplies.</p>
         </div>
-        <Field label="Address" hint="Try a sample above, or any other line for synthetic demo comps.">
-          <Input name="address" value={draft.address} onChange={(event) => set("address", event.target.value)} placeholder="4120 Township Road 215, Coshocton, OH 43812" />
+        <Field label="Address" hint="Optional if you have the APN. Land Portal looks parcels up by APN and state.">
+          <Input name="address" value={draft.address} onChange={(event) => set("address", event.target.value)} placeholder="Street, city, state ZIP" />
         </Field>
-        <Field label="APN">
+        <Field label="APN" hint="Required for Land Portal comps. Use the county's APN format.">
           <Input name="apn" value={draft.apn} onChange={(event) => set("apn", event.target.value)} placeholder="012-000345-00" />
         </Field>
-        <Field label="County" hint={`Pilot market: ${PILOT_MARKET.label}.`}>
+        <Field label="County">
           <Input name="county" value={draft.county} onChange={(event) => set("county", event.target.value)} />
         </Field>
-        <Field label="State">
+        <Field label="State" hint="Two-letter code, any U.S. state.">
           <Input name="state" value={draft.state} maxLength={2} onChange={(event) => set("state", event.target.value.toUpperCase())} />
         </Field>
         <Field label="Acreage">
@@ -94,7 +94,7 @@ export function DealForm({ initial }: { initial: DealIntake }) {
             ))}
           </Select>
         </Field>
-        <Field label="Flood or water share (%)" hint="The EXAMPLE Coshocton tract uses 20, which becomes a −10% hit at the default penalty.">
+        <Field label="Flood or water share (%)" hint="Share of the parcel in floodplain or standing water. It feeds the flood penalty in your workspace settings.">
           <Input name="floodPct" type="number" min="0" max="100" step="1" value={draft.floodPct} onChange={(event) => set("floodPct", Number(event.target.value))} />
         </Field>
         <fieldset className="space-y-2">
@@ -171,19 +171,21 @@ export function DealForm({ initial }: { initial: DealIntake }) {
         <h2 className="font-semibold">Comps provider</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <label className="flex gap-3 rounded-md border border-line p-3">
-            <input type="radio" name="provider" value="demo" checked={draft.provider === "demo"} onChange={() => set("provider", "demo")} />
-            <span>
-              <span className="block text-sm font-medium">Demo fixtures</span>
-              <span className="block text-xs leading-5 text-muted">Ohio sample sales, or synthetic filler if the address is not in the set. No API key.</span>
-            </span>
-          </label>
-          <label className="flex gap-3 rounded-md border border-line p-3">
             <input type="radio" name="provider" value="land_portal" checked={draft.provider === "land_portal"} onChange={() => set("provider", "land_portal")} />
             <span>
-              <span className="block text-sm font-medium">Land Portal (live)</span>
-              <span className="block text-xs leading-5 text-muted">Real sold comps by APN + state. Needs LAND_PORTAL_API_KEY; the report builds asynchronously, so a first run may say pending.</span>
+              <span className="block text-sm font-medium">Land Portal</span>
+              <span className="block text-xs leading-5 text-muted">Real sold comps nationwide, looked up by APN and state. The report builds in the background, so a first run can say pending; run it again after a minute.</span>
             </span>
           </label>
+          {demo ? (
+            <label className="flex gap-3 rounded-md border border-line p-3">
+              <input type="radio" name="provider" value="demo" checked={draft.provider === "demo"} onChange={() => set("provider", "demo")} />
+              <span>
+                <span className="block text-sm font-medium">Demo samples</span>
+                <span className="block text-xs leading-5 text-muted">Bundled sample parcels and made-up filler comps for trying the tool. Never use these numbers on a real deal.</span>
+              </span>
+            </label>
+          ) : null}
         </div>
       </section>
 

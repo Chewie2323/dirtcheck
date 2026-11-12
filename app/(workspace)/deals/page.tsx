@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui";
 import { listDeals } from "@/lib/deals";
 import { acresLabel, dealTitle, formatDate, money } from "@/lib/format";
+import { demoMode } from "@/lib/features";
 import { SAMPLE_PARCELS } from "@/lib/samples";
 import { EXIT_LABELS, type ExitStrategy } from "@/lib/types";
 import { requireWorkspace } from "@/lib/workspace";
@@ -12,14 +13,14 @@ const statusTone = {
   ready: "high",
   review: "medium",
   withheld: "low",
-  stub: "example",
+  stub: "neutral",
 } as const;
 
 const statusLabel = {
   ready: "Ready",
   review: "Review",
   withheld: "No offer",
-  stub: "Stub",
+  stub: "Not run",
 } as const;
 
 export default async function DealsPage() {
@@ -45,8 +46,12 @@ export default async function DealsPage() {
         <div className="rounded-lg border border-dashed border-line bg-card p-6">
           <h2 className="font-semibold">No deals in this workspace yet</h2>
           <p className="mt-2 max-w-xl text-sm leading-6 text-muted">
-            Start with a fixture address. The comps are local demo sales, so the buy box runs without an API key.
+            Add a parcel by APN and state. Dirt Check pulls sold comps for that county and builds the offer range.
           </p>
+          <Link href="/deals/new" className="mt-4 inline-flex h-10 items-center rounded-md bg-pine px-4 text-sm font-medium text-paper">
+            Add your first deal
+          </Link>
+          {demoMode() ? (
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             {SAMPLE_PARCELS.map((sample) => (
               <Link key={sample.id} href={`/deals/new?sample=${sample.id}`} className="rounded-lg border border-line p-4 hover:border-pine">
@@ -56,6 +61,7 @@ export default async function DealsPage() {
               </Link>
             ))}
           </div>
+          ) : null}
         </div>
       ) : (
         <div className="overflow-hidden rounded-lg border border-line">
