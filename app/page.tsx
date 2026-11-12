@@ -38,7 +38,7 @@ export default async function HomePage() {
             Price the dirt before you price the offer.
           </h1>
           <p className="mt-5 max-w-xl text-lg leading-8 text-muted">
-            Dirt Check is the land desk version of a house buy-box. Enter an address or APN,
+            Dirt Check is the land desk version of a house buy-box. Enter a parcel APN and state,
             answer the intake, and get a range: target, walk-away, confidence, and the comps
             behind the math.
           </p>
@@ -56,48 +56,28 @@ export default async function HomePage() {
         </div>
 
         <aside className="rounded-xl border border-line bg-card p-5 shadow-[0_20px_50px_rgba(28,25,21,0.06)]">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Pilot worksheet</p>
-            <span className="rounded-full bg-moss px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-pine">
-              Coshocton
-            </span>
-          </div>
-          <h2 className="mt-3 font-serif text-2xl tracking-tight">4120 Township Road 215</h2>
-          <p className="text-sm text-muted">Coshocton County, OH · 5 acres · wholesale · dirt road · 20% flood</p>
-          <div className="mt-5 grid grid-cols-2 gap-3">
-            <div className="rounded-lg bg-paper p-3">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-muted">Target</p>
-              <p className="font-serif text-3xl">$10,923</p>
-            </div>
-            <div className="rounded-lg bg-paper p-3">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-muted">Walk-away</p>
-              <p className="font-serif text-3xl">$12,850</p>
-            </div>
-          </div>
-          <dl className="mt-4 space-y-2 text-sm">
-            <Row k="Median of verified comps" v="$10,750/ac" />
-            <Row k="After size and features" v="$7,740/ac" />
-            <Row k="Market value" v="$38,700" />
-            <Row k="50% wholesale, then costs" v="$15,850" />
-            <Row k="Minus $3,000 minimum profit" v="$12,850 walk-away" />
-            <Row k="Confidence" v="Low · search widened" />
-          </dl>
-          <p className="mt-4 text-xs leading-5 text-muted">
-            Wholesale 50% and the $3,000 minimum profit are the workspace defaults. Size and feature
-            adjustments still use the draft curve. The comps are fixtures, not a live appraisal. The
-            search has to widen past the tight acreage band, so confidence drops one level per step.
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">How it works</p>
+          <ol className="mt-4 space-y-4 text-sm leading-6">
+            <li>
+              <p className="font-medium">1. Enter the parcel</p>
+              <p className="text-muted">APN and state for any U.S. county, acreage, and the intake answers from the seller call.</p>
+            </li>
+            <li>
+              <p className="font-medium">2. Pull real sold comps</p>
+              <p className="text-muted">Comps come from Land Portal, then get screened for distance, age, size, and outliers.</p>
+            </li>
+            <li>
+              <p className="font-medium">3. Get a range, not a guess</p>
+              <p className="text-muted">Target offer, walk-away number, and a confidence level, using your own exit factors and minimum profit.</p>
+            </li>
+            <li>
+              <p className="font-medium">4. Know when to stop</p>
+              <p className="text-muted">Thin or messy comps withhold the offer and flag the deal for a human instead of showing a made-up number.</p>
+            </li>
+          </ol>
         </aside>
       </main>
     </div>
   );
 }
 
-function Row({ k, v }: { k: string; v: string }) {
-  return (
-    <div className="flex items-baseline justify-between gap-4 border-b border-line/80 py-1.5">
-      <dt className="text-muted">{k}</dt>
-      <dd className="font-medium tabular-nums">{v}</dd>
-    </div>
-  );
-}

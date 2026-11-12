@@ -4,7 +4,7 @@ import { pathToFileURL } from "node:url";
 import { analysisStatus, analyzeIntake } from "../analyze";
 import { DEMO_EMAIL, DEMO_NAME, DEMO_ORG, DEMO_PASSWORD } from "../demo-account";
 import { SAMPLE_PARCELS } from "../samples";
-import { EXAMPLE_SETTINGS } from "../settings";
+import { DEFAULT_SETTINGS } from "../settings";
 import { db } from "./index";
 import { account, deal, membership, orgSettings, organization, user } from "./schema";
 
@@ -25,7 +25,7 @@ async function writeSampleDeals(organizationId: string, userId: string, now: Dat
   }
   for (const [index, sample] of SAMPLE_PARCELS.entries()) {
     const analyzedAt = new Date(now.getTime() - (SAMPLE_PARCELS.length - index) * 86_400_000);
-    const analysis = await analyzeIntake(sample.intake, EXAMPLE_SETTINGS, analyzedAt);
+    const analysis = await analyzeIntake(sample.intake, DEFAULT_SETTINGS, analyzedAt);
     const offer = analysis.kind === "report" ? analysis.offer : null;
     await db.insert(deal).values({
       id: crypto.randomUUID(),
@@ -58,7 +58,7 @@ export async function seedDemo(): Promise<void> {
     if (!member) return;
     await db
       .update(orgSettings)
-      .set({ settingsJson: JSON.stringify(EXAMPLE_SETTINGS), updatedAt: now })
+      .set({ settingsJson: JSON.stringify(DEFAULT_SETTINGS), updatedAt: now })
       .where(eq(orgSettings.organizationId, member.organizationId));
     await writeSampleDeals(member.organizationId, userId, now);
     return;
@@ -101,7 +101,7 @@ export async function seedDemo(): Promise<void> {
   });
   await db.insert(orgSettings).values({
     organizationId: orgId,
-    settingsJson: JSON.stringify(EXAMPLE_SETTINGS),
+    settingsJson: JSON.stringify(DEFAULT_SETTINGS),
     updatedAt: now,
   });
   await writeSampleDeals(orgId, userId, now);

@@ -42,7 +42,12 @@ export function intakeFromFormData(formData: FormData): IntakeResult {
 
   const state = text(formData, "state", 2).toUpperCase();
   if (state && !/^[A-Z]{2}$/.test(state)) {
-    return { ok: false, error: "State should be a two-letter code, such as OH." };
+    return { ok: false, error: "State should be a two-letter code, such as TX." };
+  }
+
+  if (text(formData, "provider", 40) === "land_portal") {
+    if (apn.length < 3) return { ok: false, error: "Land Portal lookups need the parcel APN." };
+    if (!state) return { ok: false, error: "Land Portal lookups need the two-letter state." };
   }
 
   const exitStrategy = choice(text(formData, "exitStrategy", 40), EXIT_STRATEGIES);

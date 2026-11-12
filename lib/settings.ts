@@ -41,12 +41,13 @@ export interface OrgSettings {
 }
 
 /**
- * Workspace defaults. Exit factors and minimum profit are Steven's figures.
- * Due-diligence costs, the size curve, and feature adjustments are still EXAMPLE
- * numbers from the Nov 4, 2026 draft.
+ * Starting values for every new workspace. Each workspace edits its own copy on
+ * the Settings page (exit factors, minimum profit, due-diligence costs, size
+ * curve, feature adjustments, confidence thresholds), so these numbers are a
+ * starting point, not market advice for any particular state.
  * Size elasticity 0.15 turns a 5-acre subject against a 3-acre comp set into −10%.
  */
-export const EXAMPLE_SETTINGS: OrgSettings = {
+export const DEFAULT_SETTINGS: OrgSettings = {
   exitFactors: {
     wholesale: 0.5,
     retail_flip: 0.6,
@@ -109,7 +110,7 @@ function numList(value: unknown, fallback: number[]): number[] {
 }
 
 export function resolveSettings(raw: unknown): OrgSettings {
-  const base = structuredClone(EXAMPLE_SETTINGS);
+  const base = structuredClone(DEFAULT_SETTINGS);
   if (!isRecord(raw)) return base;
   const exit = isRecord(raw.exitFactors) ? raw.exitFactors : {};
   const profit = isRecord(raw.minProfit) ? raw.minProfit : {};

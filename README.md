@@ -65,6 +65,7 @@ Copy `.env.example` to `.env` and set `DATABASE_URL` before `npm run dev`. Sessi
 | `BETTER_AUTH_URL` | Public origin. Defaults to `http://127.0.0.1:3847`. |
 | `DATABASE_URL` | Postgres connection string. Required. Neon URLs use `@neondatabase/serverless`. Other URLs, including Supabase and local Postgres, use `pg`. Hosted URLs use TLS. |
 | `DATABASE_SSL_CA` | Optional. A PEM certificate to verify the database TLS chain. Without it TLS is on but the chain is not verified. |
+| `ALLOW_DEMO_DATA` | Optional. Set to `1` to show sample parcels and demo comps in production. Off by default so real workspaces only see real comps. |
 | `SHOW_DEMO_LOGIN` | Optional. Set to `1` to show the demo login on the sign-in page in production. |
 | `LAND_PORTAL_API_KEY` | Paid Land Portal API key. Required for the Land Portal comps provider; without it that option reports "not configured". Set it in Vercel env vars as Sensitive; never commit it. |
 | `LAND_PORTAL_BASE_URL` | Optional. Defaults to `https://landportal.com/wp-json/lp-rest-api/v1`. |

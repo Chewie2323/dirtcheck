@@ -21,9 +21,9 @@ export function SettingsForm({
   return (
     <form action={action} className="space-y-6">
       <div className="flex flex-wrap items-center gap-3">
-        <Badge tone="example">Mixed defaults</Badge>
+        <Badge tone="neutral">Your numbers</Badge>
         <p className="text-sm text-muted">
-          Exit factors and minimum profit are the workspace defaults. Due-diligence costs, the size curve, and feature adjustments are still EXAMPLE figures from the Nov 4, 2026 draft.
+          These start from sensible defaults. Set them to match your market and your own margins; every new buy box uses them.
         </p>
       </div>
       {saved ? <p className="rounded-md bg-moss px-3 py-2 text-sm text-pine">Workspace factors saved. Re-run a deal to apply them.</p> : null}
@@ -50,13 +50,13 @@ export function SettingsForm({
         <Num name="profit.subdivide" label="Subdivide ($)" defaultValue={settings.minProfit.subdivide} step="100" />
       </Section>
 
-      <Section title="Due diligence costs" text="Closing, title, survey, and holding. Survey drops to $0 when the intake says a survey is on file. EXAMPLE closing $1,500, survey $800, holding $0.">
+      <Section title="Due diligence costs" text="Closing, title, survey, and holding. Survey drops to $0 when the intake says a survey is on file. Starts at $1,500 closing and title, $800 survey, $0 holding; set your own.">
         <Num name="cost.closingTitle" label="Closing and title ($)" defaultValue={settings.costs.closingTitle} step="50" />
         <Num name="cost.survey" label="Survey ($)" defaultValue={settings.costs.survey} step="50" />
         <Num name="cost.holding" label="Holding ($)" defaultValue={settings.costs.holding} step="50" />
       </Section>
 
-      <Section title="Size curve" text="Adjustment = −(subject acres ÷ average comp acres − 1) × elasticity. EXAMPLE elasticity 0.15 makes 5 acres against a 3-acre set a −10% hit.">
+      <Section title="Size curve" text="Adjustment = −(subject acres ÷ average comp acres − 1) × elasticity. A starting elasticity of 0.15 makes 5 acres against a 3-acre comp set a −10% hit.">
         <Num name="sizeElasticity" label="Elasticity" defaultValue={settings.sizeElasticity} step="0.01" />
         <Num name="sizeClamp.min" label="Clamp min" defaultValue={settings.sizeClamp.min} step="0.01" />
         <Num name="sizeClamp.max" label="Clamp max" defaultValue={settings.sizeClamp.max} step="0.01" />
@@ -82,10 +82,10 @@ export function SettingsForm({
         <Field label="Distance bands (miles)" hint="Widest last. The search starts at the first value. Default 5, 15, 30.">
           <Input name="distanceMilesBands" defaultValue={settings.distanceMilesBands.join(", ")} />
         </Field>
-        <Field label="Acreage bands" hint="Comma-separated fractions, widest last. EXAMPLE 0.2, 0.35, 0.5">
+        <Field label="Acreage bands" hint="Comma-separated fractions, widest last. Starts at 0.2, 0.35, 0.5">
           <Input name="acreageBands" defaultValue={settings.acreageBands.join(", ")} />
         </Field>
-        <Field label="Recency bands (months)" hint="EXAMPLE 12, 24, 36">
+        <Field label="Recency bands (months)" hint="Starts at 12, 24, 36">
           <Input name="recencyMonthsBands" defaultValue={settings.recencyMonthsBands.join(", ")} />
         </Field>
         <Num name="outlierIqrMultiplier" label="IQR multiplier" defaultValue={settings.outlierIqrMultiplier} step="0.1" />

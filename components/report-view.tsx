@@ -30,7 +30,7 @@ export function ReportView({
               .filter(Boolean)
               .join(" · ")}
           </p>
-          <p className="text-sm text-muted">Analyzed {formatDate(report.analyzedAt)} · demo comps provider</p>
+          <p className="text-sm text-muted">Analyzed {formatDate(report.analyzedAt)} · {intake.provider === "land_portal" ? "Land Portal comps" : "demo sample comps"}</p>
         </div>
         <Badge tone={confidenceTone}>{report.confidence} confidence</Badge>
       </div>
@@ -248,7 +248,7 @@ export function StubView({ dealId, intake, analysis }: { dealId: string; intake:
       </div>
       <ComplianceNote />
       <section className="rounded-lg border border-gold/30 bg-gold-soft p-5">
-        <Badge tone="example">{analysis.stub.status === "pending" ? "Pending" : "Not run"}</Badge>
+        <Badge tone="neutral">{analysis.stub.status === "pending" ? "Pending" : "Not run"}</Badge>
         <h2 className="mt-3 text-xl font-semibold">
           {analysis.stub.status === "pending" ? "Land Portal report is still building" : "Land Portal comps were not returned"}
         </h2>
@@ -269,7 +269,7 @@ export function StubView({ dealId, intake, analysis }: { dealId: string; intake:
           </button>
         </form>
         <Link href="/deals/new" className="inline-flex h-10 items-center text-sm font-medium text-pine">
-          Run again or use demo comps
+          Run a new deal
         </Link>
       </div>
     </div>

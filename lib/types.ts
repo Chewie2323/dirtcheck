@@ -106,7 +106,7 @@ export interface DemoFetch {
  */
 export interface LandPortalStub {
   ok: false;
-  provider: "land_portal";
+  provider: CompProviderId;
   stub: boolean;
   status?: "not_configured" | "pending" | "error";
   configured: boolean;

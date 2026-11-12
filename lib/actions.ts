@@ -15,7 +15,7 @@ import { canDeleteDeal, canManageWorkspace } from "./permissions";
 import { provisionWorkspace } from "./provision";
 import { clientIp } from "./request";
 import { LIMITS, consumeRateLimit, limitMessage } from "./rate-limit";
-import { EXAMPLE_SETTINGS } from "./settings";
+import { DEFAULT_SETTINGS } from "./settings";
 import { settingsFromFormData } from "./settings-form";
 import { appBaseUrl } from "./url";
 import { ORG_COOKIE, currentSession, requireWorkspace } from "./workspace";
@@ -265,7 +265,7 @@ export async function resetSettingsAction(): Promise<void> {
   if (!canManageWorkspace(workspace.role)) redirect("/settings");
   await db
     .update(orgSettings)
-    .set({ settingsJson: JSON.stringify(EXAMPLE_SETTINGS), updatedAt: new Date() })
+    .set({ settingsJson: JSON.stringify(DEFAULT_SETTINGS), updatedAt: new Date() })
     .where(eq(orgSettings.organizationId, workspace.organization.id));
   redirect("/settings?reset=1");
 }
