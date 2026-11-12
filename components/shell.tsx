@@ -50,9 +50,9 @@ export function Shell({ workspace, children }: { workspace: Workspace; children:
 function Mark() {
   return (
     <svg aria-hidden="true" viewBox="0 0 32 32" className="h-8 w-8">
-      <rect width="32" height="32" rx="7" fill="#1e4636" />
-      <path d="M9 23V9h9" fill="none" stroke="#f4f1ea" strokeWidth="2.2" />
-      <circle cx="21" cy="21" r="2.2" fill="#e7c27a" />
+      <rect width="32" height="32" rx="7" fill="#1f4e79" />
+      <path d="M9 23V9h9" fill="none" stroke="#f4f6f8" strokeWidth="2.2" />
+      <circle cx="21" cy="21" r="2.2" fill="#e2a33b" />
     </svg>
   );
 }

@@ -1,21 +1,21 @@
 @import "tailwindcss";
 
 :root {
-  --paper: #f3f0e8;
-  --paper-2: #e7e1d6;
-  --card: #fbfaf6;
-  --ink: #1c1915;
-  --muted: #5e584f;
-  --line: #ddd4c6;
-  --pine: #1e4636;
-  --pine-2: #2d6a4f;
-  --moss: #e5f0e8;
-  --copper: #8a4324;
-  --copper-soft: #f8ece6;
-  --gold: #7a5b16;
-  --gold-soft: #f6f0dc;
-  --stop: #8c2f2f;
-  --stop-soft: #f8e8e6;
+  --paper: #f4f6f8;
+  --paper-2: #e6ebf0;
+  --card: #ffffff;
+  --ink: #18222d;
+  --muted: #566472;
+  --line: #d5dde5;
+  --pine: #1f4e79;
+  --pine-2: #2f6da3;
+  --moss: #e3edf6;
+  --copper: #2e7d5b;
+  --copper-soft: #e4f2ec;
+  --gold: #8a5a0a;
+  --gold-soft: #fbf0d9;
+  --stop: #c0392b;
+  --stop-soft: #fbe9e6;
   color-scheme: light;
 }
 
@@ -42,13 +42,13 @@
 body {
   background-color: var(--paper);
   background-image:
-    linear-gradient(to right, rgba(28, 25, 21, 0.035) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(28, 25, 21, 0.035) 1px, transparent 1px);
+    linear-gradient(to right, rgba(31, 78, 121, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(31, 78, 121, 0.05) 1px, transparent 1px);
   background-size: 28px 28px;
   color: var(--ink);
   font-family: var(--font-geist), sans-serif;
 }
 
 ::selection {
-  background: #d7e8dc;
+  background: #cfe0ef;
 }
