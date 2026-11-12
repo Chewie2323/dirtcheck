@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { ComplianceNote } from "@/components/compliance-note";
-import { loadWorkspace } from "@/lib/workspace";
+import { currentSession } from "@/lib/workspace";
 
 export default async function HomePage() {
-  const workspace = await loadWorkspace();
+  // The landing page only needs to know whether someone is signed in, so it
+  // checks the session and skips the workspace queries.
+  const workspace = await currentSession();
   return (
     <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-8 sm:px-6">
       <header className="flex items-center justify-between">

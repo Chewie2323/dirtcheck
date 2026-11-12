@@ -294,7 +294,7 @@ export function buildBuyBox(input: {
   steps.push({
     step: 6,
     title: "Minus costs",
-    detail: costLines.map((line) => `${line.label} $${Math.round(line.amount).toLocaleString("en-US")}`).join(" + ") + `. The draft's illustrated ~$15,850 on the 5-acre example is this after-cost figure, before minimum profit.`,
+    detail: costLines.map((line) => `${line.label} $${Math.round(line.amount).toLocaleString("en-US")}`).join(" + ") + `. Exit value minus these costs, before minimum profit.`,
     result: afterCosts == null ? "—" : `$${Math.round(afterCosts).toLocaleString("en-US")}`,
   });
 

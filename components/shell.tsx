@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { WorkspaceSwitcher } from "@/components/workspace-switcher";
 import { logoutAction } from "@/lib/actions";
 import type { Workspace } from "@/lib/workspace";
 
@@ -11,13 +12,20 @@ export function Shell({ workspace, children }: { workspace: Workspace; children:
             <Mark />
             <span className="text-base font-semibold tracking-tight">Dirt Check</span>
           </Link>
-          <p className="text-sm text-muted">{workspace.organization.name}</p>
+          {workspace.workspaces.length > 1 ? (
+            <WorkspaceSwitcher workspaces={workspace.workspaces} currentId={workspace.organization.id} />
+          ) : (
+            <p className="text-sm text-muted">{workspace.organization.name}</p>
+          )}
           <nav className="flex items-center gap-1 text-sm sm:ml-auto">
             <Link className="rounded-md px-3 py-2 hover:bg-paper-2" href="/deals">
               Deals
             </Link>
             <Link className="rounded-md px-3 py-2 hover:bg-paper-2" href="/deals/new">
               New deal
+            </Link>
+            <Link className="rounded-md px-3 py-2 hover:bg-paper-2" href="/team">
+              Team
             </Link>
             <Link className="rounded-md px-3 py-2 hover:bg-paper-2" href="/settings">
               Settings

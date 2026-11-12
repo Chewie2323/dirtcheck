@@ -2,15 +2,24 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/auth-forms";
 import { DEMO_EMAIL, DEMO_PASSWORD } from "@/lib/demo-account";
+import { safeNext } from "@/lib/next-path";
 import { loadWorkspace } from "@/lib/workspace";
 
 export const metadata = { title: "Sign in" };
 
-export default async function LoginPage() {
-  if (await loadWorkspace()) redirect("/deals");
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
+  const next = safeNext((await searchParams).next);
+  if (await loadWorkspace()) redirect(next ?? "/deals");
+  // The shared demo login is a local-development convenience. In production it
+  // stays hidden unless SHOW_DEMO_LOGIN=1 is set on purpose.
+  const showDemo = process.env.NODE_ENV !== "production" || process.env.SHOW_DEMO_LOGIN === "1";
   return (
     <AuthFrame title="Sign in" lede="Open the workspace that holds your land files.">
-      <LoginForm demoEmail={DEMO_EMAIL} demoPassword={DEMO_PASSWORD} />
+      <LoginForm
+        next={next}
+        demoEmail={showDemo ? DEMO_EMAIL : undefined}
+        demoPassword={showDemo ? DEMO_PASSWORD : undefined}
+      />
     </AuthFrame>
   );
 }

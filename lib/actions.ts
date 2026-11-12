@@ -7,24 +7,23 @@ import { analysisStatus, analyzeIntake, type StoredAnalysis } from "./analyze";
 import { auth } from "./auth";
 import { db } from "./db";
 import { deal, membership, orgSettings, organization, user } from "./db/schema";
+import { deleteDeal, getDeal } from "./deals";
 import { intakeFromFormData } from "./intake";
+import { safeNext } from "./next-path";
+import { acceptInvite, createInvite, removeMember, revokeInvite } from "./invites";
+import { canDeleteDeal, canManageWorkspace } from "./permissions";
+import { provisionWorkspace } from "./provision";
+import { clientIp } from "./request";
+import { LIMITS, consumeRateLimit, limitMessage } from "./rate-limit";
 import { EXAMPLE_SETTINGS } from "./settings";
 import { settingsFromFormData } from "./settings-form";
-import { requireWorkspace } from "./workspace";
+import { appBaseUrl } from "./url";
+import { ORG_COOKIE, currentSession, requireWorkspace } from "./workspace";
 
 export interface ActionState {
   error?: string;
-}
-
-const ORG_COOKIE = "dirtcheck_org";
-
-function slugify(name: string): string {
-  const base = name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 40) || "workspace";
-  return `${base}-${crypto.randomUUID().slice(0, 6)}`;
+  /** A one-time invite link, shown to the person who created it. */
+  inviteLink?: string;
 }
 
 async function rememberOrg(organizationId: string) {
@@ -53,10 +52,17 @@ export async function signupAction(_prev: ActionState, formData: FormData): Prom
   const email = String(formData.get("email") || "").trim().toLowerCase();
   const password = String(formData.get("password") || "");
   const workspaceName = String(formData.get("workspaceName") || "").trim();
+  const next = safeNext(formData.get("next"));
   if (name.length < 2) return { error: "Enter your name." };
   if (!email.includes("@") || email.length > 160) return { error: "Enter a valid email." };
   if (password.length < 8) return { error: "Use at least 8 characters for the password." };
-  if (workspaceName.length < 2) return { error: "Name the workspace. This is the company or team that owns the deals." };
+  // Someone joining through an invite does not need a workspace of their own.
+  if (!next && workspaceName.length < 2) {
+    return { error: "Name the workspace. This is the company or team that owns the deals." };
+  }
+
+  const limited = await consumeRateLimit(`action:signup:ip:${await clientIp()}`, LIMITS.signupPerIp);
+  if (!limited.allowed) return { error: limitMessage(limited) };
 
   try {
     await auth.api.signUpEmail({
@@ -67,29 +73,19 @@ export async function signupAction(_prev: ActionState, formData: FormData): Prom
     return { error: safeAuthMessage(error, "Could not create that account.") };
   }
 
+  if (next) redirect(next);
+
   const [created] = await db.select().from(user).where(eq(user.email, email)).limit(1);
   if (!created) return { error: "The account was created, but the workspace could not be attached. Try signing in." };
 
-  const orgId = crypto.randomUUID();
-  const now = new Date();
-  await db.insert(organization).values({
-    id: orgId,
-    name: workspaceName,
-    slug: slugify(workspaceName),
-    createdAt: now,
-  });
-  await db.insert(membership).values({
-    id: crypto.randomUUID(),
-    organizationId: orgId,
-    userId: created.id,
-    role: "owner",
-    createdAt: now,
-  });
-  await db.insert(orgSettings).values({
-    organizationId: orgId,
-    settingsJson: JSON.stringify(EXAMPLE_SETTINGS),
-    updatedAt: now,
-  });
+  let orgId: string;
+  try {
+    orgId = await provisionWorkspace(created.id, workspaceName);
+  } catch (error) {
+    console.error(error);
+    // The account exists, so signing in later creates the workspace.
+    return { error: "Your account was created, but the workspace could not be set up. Sign in to finish." };
+  }
   await rememberOrg(orgId);
   redirect("/deals");
 }
@@ -97,7 +93,13 @@ export async function signupAction(_prev: ActionState, formData: FormData): Prom
 export async function loginAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const email = String(formData.get("email") || "").trim().toLowerCase();
   const password = String(formData.get("password") || "");
+  const next = safeNext(formData.get("next"));
   if (!email || !password) return { error: "Enter your email and password." };
+
+  const ipLimit = await consumeRateLimit(`action:login:ip:${await clientIp()}`, LIMITS.loginPerIp);
+  if (!ipLimit.allowed) return { error: limitMessage(ipLimit) };
+  const emailLimit = await consumeRateLimit(`action:login:email:${email}`, LIMITS.loginPerEmail);
+  if (!emailLimit.allowed) return { error: limitMessage(emailLimit) };
 
   try {
     await auth.api.signInEmail({
@@ -108,10 +110,27 @@ export async function loginAction(_prev: ActionState, formData: FormData): Promi
     return { error: safeAuthMessage(error, "Email or password is wrong.") };
   }
 
-  const [found] = await db.select().from(user).where(eq(user.email, email)).limit(1);
+  if (next) redirect(next);
+
+  const [found] = await db
+    .select({ id: user.id, name: user.name, organizationId: membership.organizationId })
+    .from(user)
+    .leftJoin(membership, eq(membership.userId, user.id))
+    .where(eq(user.email, email))
+    .limit(1);
   if (!found) return { error: "Email or password is wrong." };
-  const [member] = await db.select().from(membership).where(eq(membership.userId, found.id)).limit(1);
-  if (member) await rememberOrg(member.organizationId);
+
+  let organizationId = found.organizationId;
+  if (!organizationId) {
+    // A signup that was interrupted after the account was created. Finish it.
+    try {
+      organizationId = await provisionWorkspace(found.id, `${found.name}'s workspace`);
+    } catch (error) {
+      console.error(error);
+      return { error: "Signed in, but the workspace could not be set up. Try again." };
+    }
+  }
+  await rememberOrg(organizationId);
   redirect("/deals");
 }
 
@@ -220,12 +239,16 @@ function formDataFromIntake(intake: Record<string, unknown>): FormData {
 export async function deleteDealAction(formData: FormData): Promise<void> {
   const workspace = await requireWorkspace();
   const id = String(formData.get("dealId") || "");
-  await db.delete(deal).where(and(eq(deal.id, id), eq(deal.organizationId, workspace.organization.id)));
+  const row = await getDeal(workspace.organization.id, id);
+  if (row && canDeleteDeal(workspace.role, workspace.user.id, row.createdBy)) {
+    await deleteDeal(workspace.organization.id, id);
+  }
   redirect("/deals");
 }
 
 export async function saveSettingsAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const workspace = await requireWorkspace();
+  if (!canManageWorkspace(workspace.role)) return { error: "Only an owner or admin can change workspace settings." };
   const parsed = settingsFromFormData(formData);
   if (!parsed.ok) return { error: parsed.error };
   const now = new Date();
@@ -239,9 +262,63 @@ export async function saveSettingsAction(_prev: ActionState, formData: FormData)
 
 export async function resetSettingsAction(): Promise<void> {
   const workspace = await requireWorkspace();
+  if (!canManageWorkspace(workspace.role)) redirect("/settings");
   await db
     .update(orgSettings)
     .set({ settingsJson: JSON.stringify(EXAMPLE_SETTINGS), updatedAt: new Date() })
     .where(eq(orgSettings.organizationId, workspace.organization.id));
   redirect("/settings?reset=1");
+}
+
+export async function switchWorkspaceAction(formData: FormData): Promise<void> {
+  const workspace = await requireWorkspace();
+  const target = String(formData.get("organizationId") || "");
+  // Only workspaces the user belongs to can be selected.
+  if (workspace.workspaces.some((item) => item.id === target)) await rememberOrg(target);
+  redirect("/deals");
+}
+
+export async function createInviteAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const workspace = await requireWorkspace();
+  if (!canManageWorkspace(workspace.role)) return { error: "Only an owner or admin can invite people." };
+  const result = await createInvite({
+    organizationId: workspace.organization.id,
+    invitedBy: workspace.user.id,
+    actorRole: workspace.role,
+    email: String(formData.get("email") || ""),
+    role: String(formData.get("role") || "member"),
+  });
+  if (!result.ok) return { error: result.error };
+  return { inviteLink: `${appBaseUrl()}/invite/${result.token}` };
+}
+
+export async function revokeInviteAction(formData: FormData): Promise<void> {
+  const workspace = await requireWorkspace();
+  if (canManageWorkspace(workspace.role)) {
+    await revokeInvite(workspace.organization.id, String(formData.get("inviteId") || ""));
+  }
+  redirect("/team");
+}
+
+export async function removeMemberAction(formData: FormData): Promise<void> {
+  const workspace = await requireWorkspace();
+  await removeMember({
+    organizationId: workspace.organization.id,
+    actorId: workspace.user.id,
+    actorRole: workspace.role,
+    targetUserId: String(formData.get("userId") || ""),
+  });
+  redirect("/team");
+}
+
+export async function acceptInviteAction(formData: FormData): Promise<void> {
+  const token = String(formData.get("token") || "");
+  const session = await currentSession();
+  if (!session) redirect(`/login`);
+  const limited = await consumeRateLimit(`action:invite:ip:${await clientIp()}`, LIMITS.inviteAcceptPerIp);
+  if (!limited.allowed) redirect(`/invite/${token}?error=rate`);
+  const result = await acceptInvite({ token, userId: session.user.id, userEmail: session.user.email });
+  if (!result.ok) redirect(`/invite/${token}?error=${result.reason}`);
+  await rememberOrg(result.organizationId);
+  redirect("/deals");
 }

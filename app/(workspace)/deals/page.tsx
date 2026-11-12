@@ -1,8 +1,6 @@
 import Link from "next/link";
-import { desc, eq } from "drizzle-orm";
 import { Badge } from "@/components/ui";
-import { db } from "@/lib/db";
-import { deal } from "@/lib/db/schema";
+import { listDeals } from "@/lib/deals";
 import { acresLabel, dealTitle, formatDate, money } from "@/lib/format";
 import { SAMPLE_PARCELS } from "@/lib/samples";
 import { EXIT_LABELS, type ExitStrategy } from "@/lib/types";
@@ -26,11 +24,7 @@ const statusLabel = {
 
 export default async function DealsPage() {
   const workspace = await requireWorkspace();
-  const rows = await db
-    .select()
-    .from(deal)
-    .where(eq(deal.organizationId, workspace.organization.id))
-    .orderBy(desc(deal.updatedAt));
+  const rows = await listDeals(workspace.organization.id);
 
   return (
     <div className="space-y-6">

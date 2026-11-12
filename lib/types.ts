@@ -92,17 +92,23 @@ export interface CompQuery {
 
 export interface DemoFetch {
   ok: true;
-  provider: "demo";
+  provider: CompProviderId;
   synthetic: boolean;
   parcel: ParcelHint;
   comps: LandComp[];
   notes: string[];
 }
 
+/**
+ * A comps provider that could not return comps. Stored as the "stub" analysis
+ * kind (name kept so older saved deals still load).
+ * status: not_configured | pending (report queued, run again shortly) | error
+ */
 export interface LandPortalStub {
   ok: false;
   provider: "land_portal";
-  stub: true;
+  stub: boolean;
+  status?: "not_configured" | "pending" | "error";
   configured: boolean;
   message: string;
   plannedCalls: string[];

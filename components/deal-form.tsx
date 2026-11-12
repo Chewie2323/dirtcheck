@@ -180,8 +180,8 @@ export function DealForm({ initial }: { initial: DealIntake }) {
           <label className="flex gap-3 rounded-md border border-line p-3">
             <input type="radio" name="provider" value="land_portal" checked={draft.provider === "land_portal"} onChange={() => set("provider", "land_portal")} />
             <span>
-              <span className="block text-sm font-medium">Land Portal stub</span>
-              <span className="block text-xs leading-5 text-muted">Shows the resolve → async report calls. Does not hit the network or invent a report.</span>
+              <span className="block text-sm font-medium">Land Portal (live)</span>
+              <span className="block text-xs leading-5 text-muted">Real sold comps by APN + state. Needs LAND_PORTAL_API_KEY; the report builds asynchronously, so a first run may say pending.</span>
             </span>
           </label>
         </div>
