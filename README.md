@@ -1,3 +1,5 @@
+
+Production builds run from main.
 # Dirt Check
 
 Vacant-land comps and buy-box underwriting. A signed-in workspace can take a parcel, run a comps screen, and save an offer range: target, walk-away, confidence, and the sales behind the math.
