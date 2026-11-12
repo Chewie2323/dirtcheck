@@ -22,7 +22,7 @@ npm run dev
 
 Open [http://127.0.0.1:3847](http://127.0.0.1:3847).
 
-No paid API keys are required. `npm run seed` is idempotent: it creates or refreshes the demo workspace.
+The demo comps provider needs no API key. The Land Portal provider needs a paid Land Portal API key (see Environment variables). `npm run seed` is idempotent: it creates or refreshes the demo workspace.
 
 | | |
 | --- | --- |
@@ -64,7 +64,7 @@ Copy `.env.example` to `.env` and set `DATABASE_URL` before `npm run dev`. Sessi
 | `DATABASE_URL` | Postgres connection string. Required. Neon URLs use `@neondatabase/serverless`. Other URLs, including Supabase and local Postgres, use `pg`. Hosted URLs use TLS. |
 | `DATABASE_SSL_CA` | Optional. A PEM certificate to verify the database TLS chain. Without it TLS is on but the chain is not verified. |
 | `SHOW_DEMO_LOGIN` | Optional. Set to `1` to show the demo login on the sign-in page in production. |
-| `LAND_PORTAL_API_KEY` | Land Portal API key. Required for the Land Portal comps provider (set in Vercel env vars; never commit it). |
+| `LAND_PORTAL_API_KEY` | Paid Land Portal API key. Required for the Land Portal comps provider; without it that option reports "not configured". Set it in Vercel env vars as Sensitive; never commit it. |
 | `LAND_PORTAL_BASE_URL` | Optional. Defaults to `https://landportal.com/wp-json/lp-rest-api/v1`. |
 
 ## Deploy on Vercel
@@ -113,12 +113,10 @@ On the Coshocton fixture the after-cost line is still $15,850. Minimum profit of
 `lib/comps/index.ts` picks a provider from the deal.
 
 - `DemoCompsProvider` (`lib/comps/demo-provider.ts`) returns the Ohio fixtures, or synthetic filler.
-- `LandPortalCompsProvider` (`lib/comps/land-portal.ts`) is the seam for later. The intended live sequence, from Land Portal's public API docs, is:
-  1. Resolve a parcel number with `GET /search?type=parcelnumb`, or load a record with `GET /property-data?propertyid=&fips=` (or `lat` + `lng`). That yields `propertyid` and county FIPS.
-  2. Queue a comp report with `POST /reports` `{ propertyid, fips }`, then read it with `GET /reports?propertyid=&fips=`.
-  3. Send `Authorization: Bearer <token>`.
-
-  Wire those methods inside `resolveSubject`, `requestCompReport`, and `readCompReport`. Do not scrape Land Portal, PropStream, or county sites from this app. Map the real report into `LandComp[]` and return `{ ok: true }` from `fetch` only when you have an actual response.
+- `LandPortalCompsProvider` (`lib/comps/land-portal.ts`) calls Land Portal's REST API and requires a paid Land Portal API key in `LAND_PORTAL_API_KEY`. Sequence:
+  1. Resolve the parcel by APN and state with `GET /search?type=parcelnumb&query=&state=`.
+  2. Read an existing comp report with `GET /reports?propertyid=&fips=`, or queue one with `POST /reports` and poll briefly.
+  3. Map the report into `LandComp[]`. Unreadable responses return an error result. The app never invents comps and never scrapes Land Portal, PropStream, or county sites.
 
 ## Auth and tenancy
 
@@ -142,7 +140,7 @@ A user belongs to a workspace through `membership`, with a role: `owner`, `admin
 
 ## What this build does not do
 
-Live Land Portal calls, PropStream, Regrid, county scrapers, Stripe or any billing and plan limits, transactional email (invites are links, and there is no password reset or email verification), audit logs, data export or workspace deletion, CRM sync, PDF export, and mobile apps. Those are the next steps before charging customers.
+PropStream, Regrid, county scrapers, Stripe or any billing and plan limits, transactional email (invites are links, and there is no password reset or email verification), audit logs, data export or workspace deletion, CRM sync, PDF export, and mobile apps. Those are the next steps before charging customers.
 
 
 Deployed from main via the Vercel Git integration.
